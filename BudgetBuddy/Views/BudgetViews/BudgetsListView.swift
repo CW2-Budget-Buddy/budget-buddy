@@ -1,0 +1,85 @@
+//
+//  BudgetsListView.swift
+//  BudgetBuddy
+
+
+import SwiftUI
+import CoreData
+
+struct BudgetsListView: View {
+  @StateObject private var viewModel: BudgetsViewModel
+  
+  @State private var isShowingNewBudgetView = false
+  
+  init(context: NSManagedObjectContext) {
+    _viewModel = StateObject(wrappedValue: BudgetsViewModel(context: context))
+  }
+  
+  var body: some View {
+    NavigationView {
+        VStack {
+          if viewModel.budgets.isEmpty {
+            emptyBudgetsView
+          } else {
+            budgetsListView
+          }
+        }
+      .navigationTitle("Budgets")
+      .navigationBarItems(
+        leading: EditButton(),
+        trailing: Button(action: {
+          isShowingNewBudgetView = true
+        }) {
+          Image(systemName: "plus.circle.fill")
+            .resizable()
+            .frame(width: 30, height: 30)
+            .foregroundColor(.accentColor)
+        }
+      )
+      .sheet(isPresented: $isShowingNewBudgetView) {
+        NewBudgetView()
+      }
+      .onAppear {
+        viewModel.fetchBudgets()
+      }
+    }
+    .accentColor(Color("BudgetBuddyPrimary"))
+  }
+  
+  var emptyBudgetsView: some View {
+    VStack {
+      Spacer()
+      
+      Image(systemName: "plus.circle.fill")
+        .resizable()
+        .scaledToFit()
+        .frame(width: 100, height: 100)
+        .foregroundColor(.gray)
+        .padding()
+      Text("No budgets yet!")
+        .font(.headline)
+        .padding(.bottom, 1)
+      Text("Tap on the + button to add a new budget.")
+        .font(.subheadline)
+        .foregroundColor(.gray)
+      
+      Spacer()
+    }
+    .padding()
+  }
+  
+  var budgetsListView: some View {
+    List {
+      ForEach(viewModel.budgets, id: \.self) { budget in
+        BudgetRow(budget: budget)
+          .listRowBackground(Color.clear)
+      }
+      .onDelete(perform: viewModel.deleteBudgets)
+    }
+    .listStyle(InsetGroupedListStyle())
+  }
+}
+
+#Preview {
+  BudgetsListView(context: PersistenceController.preview.container.viewContext)
+}
